@@ -1,105 +1,75 @@
-# The Office
+# The Office — Multi-Agent Startup Simulator
 
-All four agents (Vex, Niblet, Pim, Riko) now exist. Each `/tick` call runs
-all four, in order, sharing one tick number -- each can post publicly, send
-a private message to one coworker (`talk_to_agent`), or idle. Their view of
-the event log is filtered to what's actually relevant to them: public posts
-and idles are visible to everyone, but a private message only reaches its
-sender and its target. Powered by Groq's free tier (llama-3.3-70b-versatile).
-Still no frontend, no auto-tick timer, no private journals yet -- those are
-the next milestones.
+A simulated startup office where four AI agents — each with a distinct role and
+personality — make autonomous decisions every tick based on live world state,
+their own past performance, and team-wide behavior patterns. Built with
+FastAPI, MongoDB, and Groq (Llama 3.3 70B) for agent decision-making.
 
-## Setup
+Watch four coworkers (Vex, Niblet, Pim, and Riko) build a product, fix bugs,
+argue, panic near deadlines, and sometimes quit — driven entirely by an LLM
+choosing from a fixed toolset each turn, scored by a hand-written reward
+function, and reflecting on its own track record before deciding what to do
+next.
 
-### 1. MongoDB
+---
 
-You need a MongoDB instance running. Easiest options:
+## What this actually is
 
-- **Local install**: install MongoDB Community Server, run `mongod` in the background.
-- **Docker** (if you have Docker installed): 
-  ```bash
-  docker run -d -p 27017:27017 --name office-mongo mongo:latest
-  ```
-- **MongoDB Atlas** (free tier, no local install needed): create a free cluster
-  at mongodb.com/atlas, get your connection string, use that as `MONGO_URI`.
+This is **not** reinforcement learning in the technical sense — no weights
+are updated, no policy is trained to replace the LLM's decision-making.
+Instead it uses two lighter-weight techniques:
 
-### 2. Environment variables
+1. **Reward-informed prompting** — each agent sees a summary of its own
+   recent actions and how they scored, injected as plain text into its
+   prompt before it decides what to do next (`performance_history.py`).
+2. **An optional, manually-trained classifier** — a small RandomForest
+   trained on all collected episodes, used to surface a loose "team-wide
+   pattern" hint (`get_team_patterns()`). It has no visibility into world
+   state and is explicitly framed to agents as a hint, not a rule — its
+   value is generalizing across action/agent combinations a specific agent
+   hasn't tried yet, not precision.
 
-```bash
-cp .env.example .env
-```
+Both are additive context. The LLM is always free to ignore them.
 
-Then edit `.env` and fill in:
-- `GROQ_API_KEY` — get a free key at https://console.groq.com/keys
-  (no card required)
-- `MONGO_URI` — leave as-is for local Mongo, or paste your Atlas connection string
+---
 
-### 3. Install dependencies
+## The agents
 
-```bash
-pip install fastapi uvicorn motor groq python-dotenv
-```
+| Agent | Role | Personality |
+|---|---|---|
+| **Vex** | Lead engineer | Blunt, brilliant, zero tolerance for sloppiness |
+| **Niblet** | PM / sprint owner | Warm, relentlessly optimistic, slightly chaotic |
+| **Pim** | Ops & infra | Anxious, hyper-competent, chronically underestimated |
+| **Riko** | Full-stack wildcard | Chaotic, brilliant, easily bored — most likely to quit under pressure |
 
-### 4. Run the server
+Each tick, every active agent:
+1. Reads the current world state (their tasks, open bugs, relationships, morale, sprint deadline)
+2. Reads their own recent performance history and any team-wide pattern hint
+3. Reads recent office activity
+4. Picks exactly one action via tool calling: `fix_bug`, `report_bug`, `update_task`, `talk_to_agent`, `post_public_message`, `raise_concern`, `idle`, or `quit`
+5. That action is scored and applied to world state — morale shifts, relationships change, bugs get fixed or introduced, tasks progress
 
-```bash
-uvicorn app.main:app --reload
-```
+Agents who quit are permanently removed from the turn rotation.
 
-## A note on the free tier
+## Tech stack
 
-Groq's free tier is rate-limited (requests per minute, tokens per minute,
-requests per day — check current limits at https://console.groq.com/docs/rate-limits
-since these change, and they vary by model). For Week 1 manual ticking this
-is a non-issue — you're clicking a button occasionally. It becomes relevant
-later once auto-tick is running 4 agents continuously; that's exactly why
-the spec's cost/rate safeguard (agents only tick while a viewer is connected)
-matters just as much for staying inside free-tier limits as it does for cost
-on a paid plan.
+- **Backend:** FastAPI, Motor (async MongoDB driver), asyncio
+- **Agent decisions:** Groq API, `llama-3.3-70b-versatile`, tool calling
+- **ML:** scikit-learn (RandomForestClassifier), joblib
+- **Frontend:** Vanilla HTML/CSS/JS, canvas-based isometric rendering, no build step
 
-## Testing it
+# Known limitations
 
-Open `http://localhost:8000/docs` — FastAPI's interactive API docs.
+- The classifier's features are shallow; `message_length` tends to dominate its predictions more than `action_type` or `agent`, which is a
+  real but not especially deep signal.
+- `context_length` (derived from a 500-char-truncated world summary) carries little variance across episodes and is usually ignored by the
+  model.
+- Task-ID matching is normalized (`.strip().upper()`) but not fully bulletproof — occasional "task not found" responses can still occur if
+  the LLM sends a malformed ID that normalization doesn't catch.
+- Riko's personality and low starting relationship score with Vex make an early quit fairly common — this is an intentional character trait, not a
+  bug, but tunable via `world_state.py`'s `DEFAULT_STATE` if you want longer average runs.
 
-1. Try **GET /health** first — confirms the server is up and Mongo is reachable.
-2. Try **POST /tick** a few times in a row. Each call runs all 4 agents in
-   order (vex, niblet, pim, riko) and returns a `tick_results` list showing
-   what each one decided -- which tool, who it was aimed at (if private),
-   and what was said.
-3. Try **GET /events** to see the full log and check the things below.
+---
+---
 
-## What to actually check for (this matters more than "did it run")
-
-- **Does each agent sound distinct?** Read a few ticks' worth of output and
-  cover up the `agent` field -- can you guess who said what just from the
-  voice? If two agents blur together, that personality prompt needs work.
-- **Does privacy actually hold?** If Vex sends a `talk_to_agent` message to
-  Pim, does Riko's next decision ever reference it? It shouldn't -- check
-  `/events` and trace through whether Riko's choices look like they ignored
-  things not addressed to them.
-- **Is idle actually being chosen sometimes?** If every single agent posts
-  or talks every single tick with nothing to react to, the model isn't
-  taking "idle" seriously as an option -- that's a sign to make the idle
-  tool's description or the personality prompts more explicit about it
-  being a normal, frequent choice.
-- **Does same-tick back-and-forth happen?** Since all 4 agents act within
-  one tick in a fixed order, check whether (for example) Pim's action
-  sometimes reacts to something Vex just said two agents earlier in the
-  *same* tick, not just the previous one.
-
-If something feels off, the fix is almost always in `app/personalities.py`
-(the system prompts) rather than the architecture -- iterate there before
-touching `agent_loop.py`.
-
-## Project structure
-
-```
-app/
-  config.py        # env var loading
-  database.py       # Mongo connection + collection references
-  personalities.py   # all 4 agent system prompts + AGENTS lookup dict
-  tools.py          # tool schema (post_public_message, talk_to_agent, idle)
-  event_log.py      # read/write helpers, including relevance-filtered reads
-  agent_loop.py      # the core decide-and-act cycle, run for all 4 agents per tick
-  main.py           # FastAPI routes
-```
+## Architecture
