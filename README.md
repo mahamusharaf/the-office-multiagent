@@ -58,7 +58,7 @@ Agents who quit are permanently removed from the turn rotation.
 - **ML:** scikit-learn (RandomForestClassifier), joblib
 - **Frontend:** Vanilla HTML/CSS/JS, canvas-based isometric rendering, no build step
 
-# Known limitations
+## Known limitations
 
 - The classifier's features are shallow; `message_length` tends to dominate its predictions more than `action_type` or `agent`, which is a
   real but not especially deep signal.
@@ -69,7 +69,3 @@ Agents who quit are permanently removed from the turn rotation.
 - Riko's personality and low starting relationship score with Vex make an early quit fairly common — this is an intentional character trait, not a
   bug, but tunable via `world_state.py`'s `DEFAULT_STATE` if you want longer average runs.
 
----
----
-
-## Architecture
