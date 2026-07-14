@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>The Office — Characters</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            image-rendering: pixelated;
+        }
+
+        body {
+            background: #1a1a2e;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            color: rgba(255, 255, 255, 0.25);
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 48px;
+            text-align: center;
+        }
+
+        .grid {
+            display: flex;
+            gap: 48px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        .char-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            cursor: default;
+        }
+
+        canvas.char {
+            display: block;
+        }
+
+        .char-info {
+            text-align: center;
+        }
+
+        .char-name {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .char-role {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.35);
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
+        }
+
+        .char-tag {
+            display: inline-block;
+            font-size: 9px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 3px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .niblet .char-name {
+            color: #fbbf24;
+        }
+
+        .niblet .char-tag {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+        }
+
+        .vex .char-name {
+            color: #a78bfa;
+        }
+
+        .vex .char-tag {
+            background: rgba(167, 139, 250, 0.15);
+            color: #a78bfa;
+        }
+
+        .pim .char-name {
+            color: #6ee7b7;
+        }
+
+        .pim .char-tag {
+            background: rgba(110, 231, 183, 0.15);
+            color: #6ee7b7;
+        }
+
+        .riko .char-name {
+            color: #fb923c;
+        }
+
+        .riko .char-tag {
+            background: rgba(251, 146, 60, 0.15);
+            color: #fb923c;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>The Office — Meet the team</h1>
+    <div class="grid">
+        <div class="char-card niblet">
+            <canvas class="char" id="c-niblet" width="80" height="96"></canvas>
+            <div class="char-info">
+                <div class="char-name">Niblet</div>
+                <div class="char-role">Head of Vibes</div>
+                <div class="char-tag">Optimist / Connector</div>
+            </div>
+        </div>
+        <div class="char-card vex">
+            <canvas class="char" id="c-vex" width="80" height="96"></canvas>
+            <div class="char-info">
+                <div class="char-name">Vex</div>
+                <div class="char-role">Engineer</div>
+                <div class="char-tag">Cynic / Skeptic</div>
+            </div>
+        </div>
+        <div class="char-card pim">
+            <canvas class="char" id="c-pim" width="80" height="96"></canvas>
+            <div class="char-info">
+                <div class="char-name">Pim</div>
+                <div class="char-role">Ops / Admin</div>
+                <div class="char-tag">Anxious / Overthinker</div>
+            </div>
+        </div>
+        <div class="char-card riko">
+            <canvas class="char" id="c-riko" width="80" height="96"></canvas>
+            <div class="char-info">
+                <div class="char-name">Riko</div>
+                <div class="char-role">Does a bit of everything</div>
+                <div class="char-tag">Wildcard / Chaotic</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Draw pixel characters at 2x scale on 80x96 canvas (40x48 logical pixels)
+        // Each character is drawn on a 16x24 logical grid, scaled up 4x
+
+        function drawPixels(canvasId, pixels, palette) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const S = 4; // scale
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let row = 0; row < pixels.length; row++) {
+                for (let col = 0; col < pixels[row].length; col++) {
+                    const code = pixels[row][col];
+                    if (code === '.' || code === ' ') continue;
+                    ctx.fillStyle = palette[code];
+                    ctx.fillRect(col * S + 8, row * S + 4, S, S);
+                }
+            }
+        }
+
+        // ── NIBLET ── bright girl, big hair, warm smile, energetic
+        // Palette: Y=yellow-hair, S=skin, C=cheek, E=eye, M=mouth, T=shirt(yellow), P=pants(teal), h=hair-dark, O=outline, W=white, s=shoe
+        const nibletPalette = {
+            O: '#2a1a0a', h: '#c8780a', Y: '#f5c842', S: '#f5c4a0', C: '#e8906a',
+            E: '#2a1a0a', M: '#c05840', T: '#f59e0b', t: '#d97706', P: '#0891b2',
+            p: '#0e7490', s: '#3a2a1a', W: '#ffffff', k: '#fde68a'
+        };
+        const nibletPixels = [
+            '    OhhhhhO    ',
+            '   OhYYYYYhO   ',
+            '  OhYYkYYYYhO  ',
+            '  OhYYYYYYYhO  ',
+            '  OSSSSSSSShO  ',
+            ' OSSSSSSSSSSSO ',
+            ' OSSCSSSSSCSS O',
+            ' OSS E   E SSO ',
+            ' OSSS  M  SSSO ',
+            '  OSSSSSSSSSSO  ',
+            '   OTTTTTTTO   ',
+            '  OTTtTTTtTTO  ',
+            ' OTT  TTT  TTO ',
+            ' OTTTTTTTTTTO  ',
+            '  OppPPPPppO   ',
+            '  OpPPPPPPpO   ',
+            '  OppPPPPppO   ',
+            '   OPppppPO    ',
+            '   OsO  OsO    ',
+            '  OssO  OssO   ',
+        ];
+
+        // ── VEX ── glasses boy, dark hair, muted purple shirt, unimpressed
+        const vexPalette = {
+            O: '#1a1a2a', H: '#1a1a2a', h: '#2a2a3a', S: '#e8b090', C: '#cc7858',
+            E: '#1a1020', G: '#6040c0', g: '#3a2880', W: '#ffffff', T: '#5b21b6',
+            t: '#4c1d95', P: '#374151', p: '#1f2937', s: '#111827', f: '#9ca3af',
+            M: '#b06050', B: '#000000', l: '#c4b5fd'
+        };
+        const vexPixels = [
+            '    OHHHHhO    ',
+            '   OHhHHHHhO   ',
+            '  OHHhHHHHhhO  ',
+            '  OHHHhHHHHhO  ',
+            '  OSSSSSSSSSO  ',
+            ' OSSCSSSSSCSS O',
+            ' OSSGGGGGGGSS O',
+            ' OSSG W G W GSO',
+            ' OSSGGBGGGBGSS O',
+            ' OSS  M   SSSO ',
+            '  OTTTTTTTTTO  ',
+            '  OTtTTTTtTTO  ',
+            ' OTT  TTT  TTO ',
+            ' OTTTTTlTTTTO  ',
+            '  OppPPPPppO   ',
+            '  OpPPPPPPpO   ',
+            '  OPPPppPPPO   ',
+            '   OPppppPO    ',
+            '   OsO  OsO    ',
+            '  OssO  OssO   ',
+        ];
+
+        // ── PIM ── anxious girl, light brown hair, slightly hunched, wide eyes, mint shirt
+        const pimPalette = {
+            O: '#1a2a1a', H: '#8b6340', h: '#6b4820', S: '#f0c8a8', C: '#d89878',
+            E: '#1a2030', W: '#ffffff', T: '#6ee7b7', t: '#34d399', P: '#9ca3af',
+            p: '#6b7280', s: '#374151', M: '#c07060', B: '#d4b08a', b: '#b89060'
+        };
+        const pimPixels = [
+            '    OHHHHhO    ',
+            '   OHhHHBHhO   ',
+            '  OHHHHHHHHhO  ',
+            '  OHHhHHHhHHO  ',
+            '   OSSSSSSSO   ',
+            '  OSSCSSSCSS O ',
+            '  OSSSSSSSSS O ',
+            '  OSS EE EE SO ',
+            '  OSS EE EE SO ',
+            '  OSS  M  SSO  ',
+            '   OTTTTTTO    ',
+            '  OTTtTTtTTO   ',
+            ' OTT  TTT  TTO ',
+            '  OTTTTTTTtO   ',
+            '   OPPPpPPO    ',
+            '  OPPPpPPPO    ',
+            '  OPppPPppO    ',
+            '   OPppppO     ',
+            '   OsO  OsO    ',
+            '  OssO  OssO   ',
+        ];
+
+        // ── RIKO ── chaotic boy, messy spiky hair, asymmetric, mischievous, orange
+        const rikoPalette = {
+            O: '#1a0a00', H: '#1a0a00', h: '#2a1500', r: '#d97706', S: '#e8a878',
+            C: '#cc7848', E: '#1a0800', W: '#ffffff', T: '#f97316', t: '#ea580c',
+            P: '#1e3a5f', p: '#1e3a5f', s: '#1a0a00', M: '#b05030', G: '#84cc16',
+            g: '#4d7c0f', y: '#fef08a'
+        };
+        const rikoPixels = [
+            '   OHHhH HO    ',
+            '  OHhHHHHHhO   ',
+            ' OHH hHHHH hHO ',
+            '  OHHHhHhHHhO  ',
+            '  OSSSSSSSSSO  ',
+            ' OSSCSSSSSCSS O',
+            ' OSSSSSSSSSSS O',
+            ' OSS E   E SSO ',
+            ' OSSS  M GSSO  ',
+            '  OSSSSSSSSSO  ',
+            '  OTTTTTtTTO   ',
+            ' OTTtTT TtTTO  ',
+            'OTT  TTT  TTTO ',
+            ' OTTTTTTTTtO   ',
+            '  OPPPpPPPO    ',
+            '  OPPppPPPO    ',
+            '  OpPPPPPpO    ',
+            '   OPppPpO     ',
+            '  OsO   OsO    ',
+            ' OssO   OssO   ',
+        ];
+
+        drawPixels('c-niblet', nibletPixels, nibletPalette);
+        drawPixels('c-vex', vexPixels, vexPalette);
+        drawPixels('c-pim', pimPixels, pimPalette);
+        drawPixels('c-riko', rikoPixels, rikoPalette);
+
+        // Idle bounce animation
+        const offsets = { niblet: 0, vex: 1.5, pim: 3, riko: 4.5 };
+        const names = ['niblet', 'vex', 'pim', 'riko'];
+        let t = 0;
+
+        function animLoop() {
+            requestAnimationFrame(animLoop);
+            t += 0.04;
+            names.forEach(n => {
+                const canvas = document.getElementById(`c-${n}`);
+                const ctx = canvas.getContext('2d');
+                const bounce = Math.sin(t + offsets[n]) * 2;
+                canvas.style.transform = `translateY(${bounce}px)`;
+            });
+        }
+        animLoop();
+    </script>
+</body>
+
+</html>

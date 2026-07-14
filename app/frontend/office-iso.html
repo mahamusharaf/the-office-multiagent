@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Office</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      image-rendering: pixelated;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      transition: background 0.6s;
+    }
+
+    body.dark {
+      background: #12111c;
+    }
+
+    body.light {
+      background: #e8f0f8;
+    }
+
+    #wrap {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    canvas#iso {
+      position: absolute;
+      top: 0;
+      left: 0;
+      image-rendering: pixelated;
+    }
+
+    canvas#bubbles {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* ── Theme toggle ── */
+    #theme-btn {
+      position: fixed;
+      top: 16px;
+      right: 14px;
+      z-index: 30;
+      width: 52px;
+      height: 26px;
+      border-radius: 13px;
+      border: none;
+      cursor: pointer;
+      position: fixed;
+      transition: background 0.3s;
+      display: flex;
+      align-items: center;
+      padding: 3px;
+    }
+
+    body.dark #theme-btn {
+      background: #2a2840;
+    }
+
+    body.light #theme-btn {
+      background: #b8d0e8;
+    }
+
+    #theme-knob {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      transition: transform 0.3s, background 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    body.dark #theme-knob {
+      background: #6d28d9;
+      transform: translateX(0px);
+    }
+
+    body.light #theme-knob {
+      background: #f59e0b;
+      transform: translateX(26px);
+    }
+
+    /* ── Header ── */
+    #header {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    #header h1 {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      transition: color 0.4s;
+    }
+
+    body.dark #header h1 {
+      color: rgba(255, 255, 255, 0.22);
+    }
+
+    body.light #header h1 {
+      color: rgba(40, 60, 100, 0.5);
+    }
+
+    #tick-lbl {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      margin-top: 2px;
+      display: block;
+      transition: color 0.4s;
+    }
+
+    body.dark #tick-lbl {
+      color: rgba(255, 255, 255, 0.12);
+    }
+
+    body.light #tick-lbl {
+      color: rgba(40, 60, 100, 0.3);
+    }
+
+    /* ── Status ── */
+    #status {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      transition: color 0.4s;
+    }
+
+    body.dark #status {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    body.light #status {
+      color: rgba(40, 60, 100, 0.5);
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+    }
+
+    .dot.err {
+      background: #ef4444;
+    }
+
+    .dot.spin {
+      background: #f59e0b;
+      animation: blink 0.7s infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0.2
+      }
+    }
+
+    /* ── Feed panel ── */
+    #feed {
+      position: fixed;
+      right: 14px;
+      top: 56px;
+      bottom: 70px;
+      width: 230px;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      border-radius: 2px;
+      transition: background 0.4s, border-color 0.4s;
+    }
+
+    body.dark #feed {
+      background: rgba(18, 17, 28, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    body.light #feed {
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(100, 140, 200, 0.25);
+    }
+
+    #feed-hd {
+      padding: 8px 10px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      transition: color 0.4s, border-color 0.4s;
+    }
+
+    body.dark #feed-hd {
+      color: rgba(255, 255, 255, 0.25);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    body.light #feed-hd {
+      color: rgba(40, 80, 140, 0.6);
+      border-bottom: 1px solid rgba(100, 140, 200, 0.15);
+    }
+
+    #feed-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    #feed-list::-webkit-scrollbar {
+      width: 2px;
+    }
+
+    body.dark #feed-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    body.light #feed-list::-webkit-scrollbar-thumb {
+      background: rgba(100, 140, 200, 0.2);
+    }
+
+    .fi {
+      padding: 7px 9px;
+      border-radius: 2px;
+      border-left: 2px solid transparent;
+      animation: fadein 0.25s ease;
+      transition: background 0.4s;
+    }
+
+    @keyframes fadein {
+      from {
+        opacity: 0;
+        transform: translateX(8px)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    body.dark .fi {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    body.light .fi {
+      background: rgba(100, 140, 200, 0.06);
+    }
+
+    .fi .fn {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+
+    .fi .ft {
+      font-size: 10px;
+      line-height: 1.45;
+      transition: color 0.4s;
+    }
+
+    body.dark .fi .ft {
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    body.light .fi .ft {
+      color: rgba(40, 60, 100, 0.65);
+    }
+
+    .fi .fr {
+      font-size: 9px;
+      margin-top: 4px;
+      padding: 1px 5px;
+      border-radius: 2px;
+      display: inline-block;
+      font-weight: 600;
+    }
+
+    .fi.niblet {
+      border-left-color: #f59e0b;
+    }
+
+    .fi.niblet .fn {
+      color: #d97706;
+    }
+
+    .fi.vex {
+      border-left-color: #8b5cf6;
+    }
+
+    .fi.vex .fn {
+      color: #7c3aed;
+    }
+
+    .fi.pim {
+      border-left-color: #10b981;
+    }
+
+    .fi.pim .fn {
+      color: #059669;
+    }
+
+    .fi.riko {
+      border-left-color: #f97316;
+    }
+
+    .fi.riko .fn {
+      color: #ea580c;
+    }
+
+    .fr.pos {
+      background: rgba(34, 197, 94, 0.12);
+      color: #16a34a;
+    }
+
+    .fr.neg {
+      background: rgba(239, 68, 68, 0.12);
+      color: #dc2626;
+    }
+
+    .fr.neu {
+      background: rgba(100, 100, 100, 0.1);
+      color: #6b7280;
+    }
+
+    /* ── Stats ── */
+    #stats {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      display: flex;
+      gap: 8px;
+      z-index: 20;
+    }
+
+    .sc {
+      border-radius: 2px;
+      padding: 8px 12px;
+      min-width: 78px;
+      text-align: center;
+      transition: background 0.4s, border-color 0.4s;
+    }
+
+    body.dark .sc {
+      background: rgba(18, 17, 28, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    body.light .sc {
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(100, 140, 200, 0.25);
+    }
+
+    .sc .sn {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .sc .sv {
+      font-size: 19px;
+      font-weight: 700;
+      margin-top: 2px;
+      line-height: 1;
+      transition: color 0.4s;
+    }
+
+    body.dark .sc .sv {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    body.light .sc .sv {
+      color: rgba(30, 50, 90, 0.9);
+    }
+
+    .sc .sl {
+      font-size: 8px;
+      letter-spacing: 0.06em;
+      margin-top: 2px;
+      transition: color 0.4s;
+    }
+
+    body.dark .sc .sl {
+      color: rgba(255, 255, 255, 0.2);
+    }
+
+    body.light .sc .sl {
+      color: rgba(40, 80, 140, 0.4);
+    }
+
+    .sc.niblet .sn {
+      color: #d97706;
+    }
+
+    .sc.vex .sn {
+      color: #7c3aed;
+    }
+
+    .sc.pim .sn {
+      color: #059669;
+    }
+
+    .sc.riko .sn {
+      color: #ea580c;
+    }
+
+    /* ── Tick button ── */
+    #btn {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      border-radius: 2px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 11px 30px;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, color 0.4s;
+    }
+
+    body.dark #btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    body.light #btn {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(100, 140, 200, 0.4);
+      color: rgba(40, 80, 160, 0.8);
+    }
+
+    body.dark #btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    body.light #btn:hover {
+      background: rgba(255, 255, 255, 1);
+      border-color: rgba(100, 140, 200, 0.7);
+    }
+
+    #btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    /* ── Auto-play button ── */
+    #autoplay-btn {
+      position: fixed;
+      bottom: 16px;
+      right: 14px;
+      z-index: 20;
+      border-radius: 2px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 11px 20px;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+
+    body.dark #autoplay-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    body.light #autoplay-btn {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(100, 140, 200, 0.4);
+      color: rgba(40, 80, 160, 0.8);
+    }
+
+    #autoplay-btn.on {
+      background: rgba(34, 197, 94, 0.18) !important;
+      color: #10b981 !important;
+      border-color: rgba(34, 197, 94, 0.4) !important;
+    }
+  </style>
+</head>
+
+<body class="dark">
+  <div id="wrap">
+    <canvas id="iso"></canvas>
+    <canvas id="bubbles"></canvas>
+  </div>
+
+  <div id="status">
+    <div class="dot spin" id="sdot"></div><span id="stxt">connecting</span>
+  </div>
+  <div id="header">
+    <h1>The Office</h1><span id="tick-lbl">—</span>
+  </div>
+
+  <button id="theme-btn" onclick="toggleTheme()" style="position:fixed;top:16px;right:14px;z-index:30;">
+    <div id="theme-knob">🌙</div>
+  </button>
+
+  <div id="feed">
+    <div id="feed-hd">Office feed</div>
+    <div id="feed-list"></div>
+  </div>
+  <div id="stats">
+    <div class="sc niblet">
+      <div class="sn">Niblet</div>
+      <div class="sv" id="sv-niblet">—</div>
+      <div class="sl">avg reward</div>
+    </div>
+    <div class="sc vex">
+      <div class="sn">Vex</div>
+      <div class="sv" id="sv-vex">—</div>
+      <div class="sl">avg reward</div>
+    </div>
+    <div class="sc pim">
+      <div class="sn">Pim</div>
+      <div class="sv" id="sv-pim">—</div>
+      <div class="sl">avg reward</div>
+    </div>
+    <div class="sc riko">
+      <div class="sn">Riko</div>
+      <div class="sv" id="sv-riko">—</div>
+      <div class="sl">avg reward</div>
+    </div>
+  </div>
+  <button id="btn" onclick="runTick()">▶ Run Tick</button>
+
+  <script>
+    const API = 'http://127.0.0.1:8000';
+    let isDark = true;
+
+    function toggleTheme() {
+      isDark = !isDark;
+      document.body.className = isDark ? 'dark' : 'light';
+      document.getElementById('theme-knob').textContent = isDark ? '🌙' : '☀️';
+    }
+
+    // ── Canvas ────────────────────────────────────────────────────
+    const iso = document.getElementById('iso');
+    const bCvs = document.getElementById('bubbles');
+    const ctx = iso.getContext('2d');
+    const bCtx = bCvs.getContext('2d');
+    const S = 3;
+
+    function resize() {
+      iso.width = bCvs.width = window.innerWidth;
+      iso.height = bCvs.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    // ── Iso math ──────────────────────────────────────────────────
+    const TW = 72, TH = 36;
+    function iso2d(gx, gy) {
+      return {
+        x: window.innerWidth * 0.45 + (gx - gy) * TW / 2,
+        y: window.innerHeight * 0.18 + (gx + gy) * TH / 2
+      };
+    }
+
+    // ── Sprite renderer ───────────────────────────────────────────
+    function drawSprite(pixels, palette, cx, cy) {
+      for (let r = 0; r < pixels.length; r++) {
+        for (let c = 0; c < pixels[r].length; c++) {
+          const code = pixels[r][c];
+          if (code === ' ' || code === '.') continue;
+          ctx.fillStyle = palette[code] || '#ff00ff';
+          ctx.fillRect(cx + c * S, cy + r * S, S, S);
+        }
+      }
+    }
+
+    // ── Characters ────────────────────────────────────────────────
+    const nibletP = {
+      O: '#1a0f00', H: '#c87800', h: '#f5c030', k: '#fde68a', S: '#f5c4a0',
+      C: '#e88868', E: '#1a0800', W: '#ffffff', T: '#f59e0b', t: '#d97706',
+      P: '#0891b2', p: '#0e7490', s: '#1a2a3a', M: '#c05040', N: '#fef3c7'
+    };
+    const nibletSprite = [
+      '  OhhhhhhhO  ',
+      ' OhHHHkHHHhO ',
+      ' OhHHHHHHHhO ',
+      'OhHHHHHHHHHhO',
+      'OSSSSSSSSSSSO',
+      'OSSCSSSSSCSS O',
+      'OSS ESESESSE O',
+      'OSS  MMMMM  O',
+      'OSS SSSSSS  O',
+      ' OTTTTTTTTTTO',
+      ' OTtTTNTTtTTO',
+      ' OTT TTTTT TO',
+      ' OTTTTTTTTTTO',
+      ' OPPPPPPPPPO ',
+      ' OpPPPPPPPpO ',
+      ' OPPPPPPPPPO ',
+      '  OsO    OsO ',
+      '  OssO  OssO ',
+    ];
+
+    const vexP = {
+      O: '#0f0820', H: '#18102e', h: '#241840', S: '#e8b090', C: '#cc7858',
+      E: '#0f0820', W: '#ffffff', G: '#5b21b6', l: '#c4b5fd', T: '#6d28d9',
+      t: '#5b21b6', P: '#1f2937', p: '#111827', s: '#0f0820', M: '#b06050',
+      F: '#9ca3af'
+    };
+    const vexSprite = [
+      '  OHHHHhHHO  ',
+      ' OHhHHHHHHhO ',
+      ' OHHhHHHHhhO ',
+      'OHHHHHHHHHHHO',
+      'OSSSSSSSSSSSO',
+      'OSSCSSSSSCSS O',
+      'OFFFFFFFFFFFFО',
+      'OFGEWGGGWEGFO',
+      'OFFFFFFFFFFFFО',
+      'OSS  MMM  SSSO',
+      ' OTTTTTTTTTO ',
+      ' OTtTTlTTtTO ',
+      ' OTT TTTT TO ',
+      ' OTTTTTTTTTO ',
+      ' OPPPPPPPPO  ',
+      ' OPPpPpPPPO  ',
+      ' OPPPPPPPPO  ',
+      '  OsO   OsO  ',
+      '  OssO OssO  ',
+    ];
+
+    const pimP = {
+      O: '#0f1a10', H: '#8b6340', h: '#6b4320', S: '#f0c8a8', C: '#d89070',
+      E: '#0f1020', W: '#ffffff', T: '#6ee7b7', t: '#34d399', P: '#9ca3af',
+      p: '#6b7280', s: '#1f2937', M: '#c07060', B: '#c4956a'
+    };
+    const pimSprite = [
+      '  OHHBHHhO   ',
+      ' OHhHHHHHhO  ',
+      ' OHHHBHHHHhO ',
+      'OHHH HHHH HHO',
+      ' OSSSSSSSSO  ',
+      ' OSSCSSSCSO  ',
+      ' OSS SSSS SO ',
+      ' OSS EEEE SO ',
+      ' OSSWEEWEWSO ',
+      ' OSS  MM  SO ',
+      '  OTTTTTTO   ',
+      '  OTtTTtTO   ',
+      ' OTT TTTT TO ',
+      '  OTTTTTTTO  ',
+      '  OPPPPPPPO  ',
+      '  OpPPpPPpO  ',
+      '  OPPPPPPPO  ',
+      '   OsO OsO   ',
+      '  OssO OssO  ',
+    ];
+
+    const rikoP = {
+      O: '#0f0800', H: '#0f0800', h: '#1a1000', S: '#e8a870', C: '#cc7848',
+      E: '#0f0800', W: '#ffffff', T: '#f97316', t: '#ea580c', P: '#1e3a5f',
+      p: '#172d4a', s: '#0f0800', M: '#b05028', G: '#84cc16'
+    };
+    const rikoSprite = [
+      ' OHH HhHHHO  ',
+      'OHhH HHHH hHO',
+      'OHH hHHHH HHO',
+      ' OHHHhHhHHHO ',
+      ' OSSSSSSSSSO ',
+      ' OSSC SSSCSO ',
+      ' OSS  SSSS O ',
+      ' OSS E   E O ',
+      ' OSS  MGM  O ',
+      ' OSSS SSS SO ',
+      ' OTTTTTTTTTO ',
+      ' OTtTT TTtTO ',
+      'OTT TTTTT TTO',
+      ' OTTTTTTTTO  ',
+      ' OPPPP PPPO  ',
+      ' OPPpP PPpO  ',
+      ' OPPPPPPPPO  ',
+      '  OsO  OsO   ',
+      ' OssO  OssO  ',
+    ];
+
+    const CHARS = {
+      niblet: { sprite: nibletSprite, palette: nibletP, color: '#f59e0b', label: 'Niblet' },
+      vex: { sprite: vexSprite, palette: vexP, color: '#8b5cf6', label: 'Vex' },
+      pim: { sprite: pimSprite, palette: pimP, color: '#6ee7b7', label: 'Pim' },
+      riko: { sprite: rikoSprite, palette: rikoP, color: '#f97316', label: 'Riko' },
+    };
+
+    const DESKS = {
+      niblet: [1.2, 0.8],
+      vex: [5.0, 0.8],
+      pim: [1.2, 4.2],
+      riko: [5.0, 4.2],
+    };
+
+    // ── Theme palettes ────────────────────────────────────────────
+    const THEME = {
+      dark: {
+        bg: '#12111c',
+        floor1: '#1e1c2e', floor2: '#1a1828', floorLine: '#2a2840',
+        carpet: '#1c2840', carpetLine: '#243050',
+        backWall: '#2a2840', backWallLine: '#3a3858',
+        leftWall: '#221e38', leftWallLine: '#2e2a48',
+        desk: '#2a2440', deskSide1: '#221e38', deskSide2: '#1e1a30',
+        monitor: '#111120', monitorLine: '#2a2840',
+        meetTable: '#2c2848', meetL: '#241e3c', meetR: '#1e1830',
+        cabinet: '#3a3850', cabinetL: '#2e2c44', cabinetR: '#262438',
+        shelf: '#1e1c2e', shelfLine: '#3a3858',
+        windowBg: '#162030', windowPane: 'rgba(140,200,255,0.12)',
+        windowFrame: '#4a6080',
+        wallArt1: '#2a1818', wallArt1b: '#8b3a3a', wallArt1c: '#c05040',
+        wallArt2: '#1a2030', wallArt2b: '#2a3850',
+        lamp: '#f5c842', lampBase: '#2a2440',
+        plant: '#4a6830', plantDark: '#3a5020', pot: '#2a1808',
+        shadow: 'rgba(0,0,0,0.3)',
+        label: 'rgba(255,255,255,0.55)',
+      },
+      light: {
+        bg: '#e8f0f8',
+        floor1: '#dce8f2', floor2: '#d0dcea', floorLine: '#b8cce0',
+        carpet: '#b0c8e0', carpetLine: '#98b4cc',
+        backWall: '#e0ecf8', backWallLine: '#b8cce0',
+        leftWall: '#d8e4f0', leftWallLine: '#b0c4d8',
+        desk: '#f0e8d8', deskSide1: '#e0d4c0', deskSide2: '#d4c8b0',
+        monitor: '#2a3040', monitorLine: '#1a2030',
+        meetTable: '#e8dcc8', meetL: '#d8ccb8', meetR: '#c8bca8',
+        cabinet: '#c0c8d0', cabinetL: '#b0b8c0', cabinetR: '#a0a8b0',
+        shelf: '#d8c8a8', shelfLine: '#c0a870',
+        windowBg: '#a8d0f0', windowPane: 'rgba(180,220,255,0.4)',
+        windowFrame: '#6090c0',
+        wallArt1: '#f0d8d0', wallArt1b: '#e09080', wallArt1c: '#f0b090',
+        wallArt2: '#d8e8f8', wallArt2b: '#b0c8e8',
+        lamp: '#fde68a', lampBase: '#c0a870',
+        plant: '#7ab870', plantDark: '#5a9050', pot: '#c09060',
+        shadow: 'rgba(80,120,160,0.15)',
+        label: 'rgba(30,60,120,0.6)',
+      }
+    };
+
+    // ── Scene ─────────────────────────────────────────────────────
+    function tile(gx, gy, fill, stroke) {
+      const p = iso2d(gx, gy);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + TW / 2, p.y + TH / 2);
+      ctx.lineTo(p.x, p.y + TH); ctx.lineTo(p.x - TW / 2, p.y + TH / 2);
+      ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 0.5; ctx.stroke(); }
+    }
+
+    function box(gx, gy, w, d, h, top, left, right) {
+      const p = iso2d(gx, gy);
+      const tw = TW / 2 * w, th = TH / 2 * w, dw = TW / 2 * d, dh = TH / 2 * d, px = p.x, py = p.y - h;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + tw, py + th);
+      ctx.lineTo(px + tw - dw, py + th + dh); ctx.lineTo(px - dw, py + dh); ctx.closePath();
+      ctx.fillStyle = top; ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 0.5; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(px - dw, py + dh); ctx.lineTo(px + tw - dw, py + th + dh);
+      ctx.lineTo(px + tw - dw, py + th + dh + h); ctx.lineTo(px - dw, py + dh + h); ctx.closePath();
+      ctx.fillStyle = left; ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(px + tw, py + th); ctx.lineTo(px + tw, py + th + h);
+      ctx.lineTo(px + tw - dw, py + th + dh + h); ctx.lineTo(px + tw - dw, py + th + dh); ctx.closePath();
+      ctx.fillStyle = right; ctx.fill(); ctx.stroke();
+    }
+
+    function drawScene(T) {
+      // floor
+      for (let gx = 0; gx < 9; gx++) for (let gy = 0; gy < 7; gy++)
+        tile(gx, gy, (gx + gy) % 2 === 0 ? T.floor1 : T.floor2, T.floorLine);
+      // carpet
+      for (let gx = 2; gx < 7; gx++) for (let gy = 2; gy < 5; gy++)
+        tile(gx, gy, T.carpet, T.carpetLine);
+
+      // back wall
+      for (let gx = 0; gx < 9; gx++) {
+        const p1 = iso2d(gx, 0), p2 = iso2d(gx + 1, 0);
+        ctx.fillStyle = T.backWall;
+        ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+        ctx.lineTo(p2.x, p2.y - 90); ctx.lineTo(p1.x, p1.y - 90); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = T.backWallLine; ctx.lineWidth = 0.5; ctx.stroke();
+      }
+      // left wall
+      for (let gy = 0; gy < 7; gy++) {
+        const p1 = iso2d(0, gy), p2 = iso2d(0, gy + 1);
+        ctx.fillStyle = T.leftWall;
+        ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+        ctx.lineTo(p2.x, p2.y - 90); ctx.lineTo(p1.x, p1.y - 90); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = T.leftWallLine; ctx.lineWidth = 0.5; ctx.stroke();
+      }
+
+      // windows
+      [2, 5].forEach(gx => {
+        const p = iso2d(gx + 0.5, 0);
+        ctx.fillStyle = T.windowBg; ctx.fillRect(p.x - 22, p.y - 78, 44, 52);
+        [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(([cx, cy]) => {
+          ctx.fillStyle = T.windowPane; ctx.fillRect(p.x - 20 + cx * 22, p.y - 76 + cy * 25, 20, 23);
+        });
+        ctx.strokeStyle = T.windowFrame; ctx.lineWidth = 1.5;
+        ctx.strokeRect(p.x - 22, p.y - 78, 44, 52);
+        ctx.beginPath(); ctx.moveTo(p.x, p.y - 78); ctx.lineTo(p.x, p.y - 26); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(p.x - 22, p.y - 52); ctx.lineTo(p.x + 22, p.y - 52); ctx.stroke();
+        // sunrays in light mode
+        if (!isDark) {
+          ctx.fillStyle = 'rgba(255,240,180,0.08)';
+          for (let i = 0; i < 4; i++) {
+            ctx.beginPath(); ctx.moveTo(p.x - 5 + i * 4, p.y - 26); ctx.lineTo(p.x - 20 + i * 12, p.y + 60); ctx.lineTo(p.x - 16 + i * 12, p.y + 60); ctx.closePath(); ctx.fill();
+          }
+        }
+        // lamp
+        const lp = iso2d(gx + 1.3, 0);
+        ctx.fillStyle = T.lampBase; ctx.fillRect(lp.x - 4, lp.y - 48, 8, 18);
+        ctx.fillStyle = T.lamp; ctx.globalAlpha = isDark ? 0.8 : 0.9;
+        ctx.beginPath(); ctx.arc(lp.x, lp.y - 52, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+
+      // wall art
+      const pa = iso2d(7.5, 0);
+      ctx.fillStyle = T.wallArt1; ctx.fillRect(pa.x - 16, pa.y - 68, 32, 40);
+      ctx.fillStyle = T.wallArt1b; ctx.fillRect(pa.x - 13, pa.y - 65, 26, 34);
+      ctx.fillStyle = T.wallArt1c; ctx.fillRect(pa.x - 8, pa.y - 58, 14, 20);
+      const pb = iso2d(3.8, 0);
+      ctx.fillStyle = T.wallArt2; ctx.fillRect(pb.x - 20, pb.y - 70, 40, 32);
+      ctx.fillStyle = T.wallArt2b; ctx.fillRect(pb.x - 17, pb.y - 67, 34, 26);
+      for (let i = 0; i < 4; i++) { ctx.fillStyle = `rgba(100,160,220,${0.2 + i * 0.12})`; ctx.fillRect(pb.x - 14 + i * 8, pb.y - 63, 5, 18); }
+
+      // furniture
+      box(7.5, 0.5, 1, 1, 40, T.cabinet, T.cabinetL, T.cabinetR);
+      box(7.5, 1.5, 1, 1, 40, T.cabinet, T.cabinetL, T.cabinetR);
+      const bp = iso2d(0, 1.5);
+      ctx.fillStyle = T.shelf; ctx.fillRect(bp.x - 8, bp.y - 55, 16, 50);
+      ctx.strokeStyle = T.shelfLine; ctx.lineWidth = 0.5; ctx.strokeRect(bp.x - 8, bp.y - 55, 16, 50);
+      ['#c06060', '#6080c0', '#60b060', '#c0a040', '#8060c0'].forEach((c, i) => { ctx.fillStyle = c; ctx.fillRect(bp.x - 6, bp.y - 50 + i * 8, 12, 6); });
+
+      // plants
+      [[0.3, 6.2], [8.2, 0.3], [8.2, 6.2]].forEach(([gx, gy]) => {
+        const p = iso2d(gx, gy);
+        ctx.fillStyle = T.pot; ctx.fillRect(p.x - 8, p.y - 12, 16, 14);
+        ctx.fillStyle = T.plant; ctx.beginPath(); ctx.arc(p.x, p.y - 20, 13, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = T.plantDark; ctx.beginPath(); ctx.arc(p.x - 5, p.y - 24, 8, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x + 6, p.y - 22, 7, 0, Math.PI * 2); ctx.fill();
+      });
+
+      // meeting table
+      box(3.5, 2.5, 2, 1.5, 16, T.meetTable, T.meetL, T.meetR);
+
+      // desks + monitors
+      Object.entries(DESKS).forEach(([name, [gx, gy]]) => {
+        const c = CHARS[name];
+        box(gx - 0.3, gy - 0.3, 1.6, 1, 18, T.desk, T.deskSide1, T.deskSide2);
+        const mp = iso2d(gx + 0.5, gy - 0.1);
+        ctx.fillStyle = T.monitor; ctx.fillRect(mp.x - 12, mp.y - 32, 22, 20);
+        ctx.fillStyle = c.color; ctx.globalAlpha = isDark ? 0.18 : 0.25;
+        ctx.fillRect(mp.x - 10, mp.y - 30, 18, 15); ctx.globalAlpha = 1;
+        ctx.fillStyle = T.monitor; ctx.fillRect(mp.x - 3, mp.y - 12, 5, 6); ctx.fillRect(mp.x - 7, mp.y - 7, 13, 3);
+        ctx.fillStyle = isDark ? '#2a2840' : '#d0dce8'; ctx.fillRect(mp.x - 12, mp.y - 8, 14, 6);
+        // glow
+        ctx.fillStyle = c.color; ctx.globalAlpha = isDark ? 0.07 : 0.04;
+        ctx.beginPath(); ctx.arc(mp.x + 8, mp.y - 28, 18, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+        ctx.fillStyle = T.lampBase; ctx.fillRect(mp.x + 6, mp.y - 40, 4, 16);
+        ctx.fillStyle = T.lamp; ctx.globalAlpha = 0.85;
+        ctx.beginPath(); ctx.arc(mp.x + 8, mp.y - 42, 5, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+      });
+    }
+
+    function drawAgents(t) {
+      Object.entries(DESKS).forEach(([name, [gx, gy]]) => {
+        const a = anim[name], c = CHARS[name];
+        const by = Math.sin(t + a.bouncePhase) * (a.talking ? 4 : 1.2);
+        const p = iso2d(gx, gy);
+        const sw = c.sprite[0].length * S, sh = c.sprite.length * S;
+        const cx = p.x - sw / 2 + 4, cy = p.y - sh - 2 + by;
+        ctx.fillStyle = isDark ? 'rgba(0,0,0,0.25)' : 'rgba(80,120,160,0.12)';
+        ctx.beginPath(); ctx.ellipse(p.x + 4, p.y + 2, 14, 5, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = a.idle ? 0.45 : 1;
+        drawSprite(c.sprite, c.palette, cx, cy);
+        ctx.globalAlpha = 1;
+        ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
+        ctx.fillStyle = c.color; ctx.globalAlpha = 0.75;
+        ctx.fillText(c.label, p.x + 4, cy - 5); ctx.globalAlpha = 1;
+      });
+    }
+
+    // ── Bubbles ───────────────────────────────────────────────────
+    const bubbles = {};
+    function showBubble(name, text) { bubbles[name] = { text: text.slice(0, 100), born: Date.now() }; setTimeout(() => delete bubbles[name], 5000); }
+
+    function drawBubbles() {
+      bCtx.clearRect(0, 0, bCvs.width, bCvs.height);
+      for (const [name, b] of Object.entries(bubbles)) {
+        const age = (Date.now() - b.born) / 1000;
+        const alpha = age > 4 ? 1 - (age - 4) : 1;
+        const dg = DESKS[name], p = iso2d(dg[0], dg[1]);
+        const bx = p.x + 16, by = p.y - 80;
+        bCtx.save(); bCtx.globalAlpha = alpha;
+        bCtx.font = '10px monospace';
+        const words = b.text.split(' '), lines = []; let line = '';
+        for (const w of words) { const t = line + (line ? ' ' : '') + w; if (bCtx.measureText(t).width > 136) { lines.push(line); line = w; } else line = t; }
+        if (line) lines.push(line); lines.splice(4);
+        const bw = Math.min(150, Math.max(...lines.map(l => bCtx.measureText(l).width)) + 14);
+        const bh = lines.length * 13 + 10;
+        const c = CHARS[name];
+        bCtx.fillStyle = isDark ? '#1e1830' : '#ffffff';
+        bCtx.strokeStyle = c.color; bCtx.lineWidth = 1.5;
+        bCtx.fillRect(bx - bw / 2, by - bh, bw, bh); bCtx.strokeRect(bx - bw / 2, by - bh, bw, bh);
+        bCtx.beginPath(); bCtx.moveTo(bx - 5, by); bCtx.lineTo(bx, by + 9); bCtx.lineTo(bx + 5, by);
+        bCtx.fillStyle = isDark ? '#1e1830' : '#ffffff'; bCtx.fill();
+        bCtx.strokeStyle = c.color; bCtx.lineWidth = 1.5; bCtx.stroke();
+        bCtx.fillStyle = isDark ? 'rgba(255,255,255,0.8)' : 'rgba(30,50,100,0.85)';
+        bCtx.font = '10px monospace'; bCtx.textAlign = 'center';
+        lines.forEach((l, i) => bCtx.fillText(l, bx, by - bh + 13 + i * 13));
+        bCtx.restore();
+      }
+    }
+
+    // ── Anim state ────────────────────────────────────────────────
+    const anim = {};
+    Object.keys(CHARS).forEach(n => anim[n] = { bouncePhase: Math.random() * Math.PI * 2, talking: false, idle: false });
+
+    let t = 0;
+    function loop() {
+      requestAnimationFrame(loop); t += 0.03;
+      ctx.clearRect(0, 0, iso.width, iso.height);
+      const T = THEME[isDark ? 'dark' : 'light'];
+      drawScene(T); drawAgents(t); drawBubbles();
+    }
+    loop();
+
+    // ── Feed ──────────────────────────────────────────────────────
+    function addFeed(result) {
+      const list = document.getElementById('feed-list');
+      const c = CHARS[result.agent] || {};
+      const item = document.createElement('div');
+      item.className = `fi ${result.agent}`;
+      const txt = result.action === 'idle' ? `💤 ${result.content}` : result.action === 'talk_to_agent' ? `→ ${result.target}: ${result.content}` : result.content;
+      const r = result.reward ?? 0, rc = r > 0 ? 'pos' : r < 0 ? 'neg' : 'neu';
+      item.innerHTML = `<div class="fn">${c.label || result.agent}</div><div class="ft">${txt}</div><span class="fr ${rc}">${r > 0 ? '+' : ''}${r.toFixed(2)}</span>`;
+      list.prepend(item);
+      while (list.children.length > 30) list.removeChild(list.lastChild);
+      document.getElementById('tick-lbl').textContent = `tick ${result.tick}`;
+    }
+
+    // Reveal one result: feed item + bubble + bounce animation, all together
+    function revealResult(res) {
+      addFeed(res);
+      if (anim[res.agent]) {
+        anim[res.agent].talking = res.action !== 'idle';
+        anim[res.agent].idle = res.action === 'idle';
+        if (res.action !== 'idle' && res.content) showBubble(res.agent, res.content);
+        setTimeout(() => {
+          if (anim[res.agent]) { anim[res.agent].talking = false; anim[res.agent].idle = false; }
+        }, 4500);
+      }
+    }
+
+    // Reveal a batch of results one-at-a-time, like a real conversation,
+    // instead of dumping them all into the feed in the same instant.
+    function revealBatch(results, gapMs = 900) {
+      return new Promise(resolve => {
+        if (results.length === 0) { resolve(); return; }
+        results.forEach((res, idx) => {
+          setTimeout(() => {
+            revealResult(res);
+            if (idx === results.length - 1) setTimeout(resolve, 300);
+          }, idx * gapMs);
+        });
+      });
+    }
+
+    async function loadStats() {
+      try {
+        const r = await fetch(`${API}/stats/all`); if (!r.ok) return;
+        const d = await r.json();
+        for (const [n, s] of Object.entries(d)) { const el = document.getElementById(`sv-${n}`); if (el && s.avg_reward != null) el.textContent = s.avg_reward.toFixed(2); }
+      } catch { }
+    }
+
+    async function loadEvents() {
+      try {
+        const r = await fetch(`${API}/events?limit=15`); if (!r.ok) return;
+        const d = await r.json(); const evs = d.events || d;
+        if (!Array.isArray(evs)) return;
+        const list = document.getElementById('feed-list');
+        if (list.children.length === 0) [...evs].reverse().forEach(addFeed);
+        if (evs[0]) document.getElementById('tick-lbl').textContent = `tick ${evs[0].tick}`;
+      } catch { }
+    }
+
+    async function checkHealth() {
+      try {
+        const r = await fetch(`${API}/health`);
+        const dot = document.getElementById('sdot'), txt = document.getElementById('stxt');
+        if (r.ok) { dot.className = 'dot'; txt.textContent = 'connected'; }
+        else { dot.className = 'dot err'; txt.textContent = 'api error'; }
+      } catch { document.getElementById('sdot').className = 'dot err'; document.getElementById('stxt').textContent = 'api offline'; }
+    }
+
+    // ── Tick execution (manual + auto share this) ──────────────────
+    let tickInFlight = false;
+
+    async function runTickOnce({ showButtonState = true } = {}) {
+      if (tickInFlight) return;
+      tickInFlight = true;
+
+      const btn = document.getElementById('btn');
+      if (showButtonState) { btn.disabled = true; btn.textContent = '⏳  Running…'; }
+      document.getElementById('sdot').className = 'dot spin';
+      document.getElementById('stxt').textContent = 'ticking…';
+
+      try {
+        const r = await fetch(`${API}/tick`, { method: 'POST' });
+        if (!r.ok) throw new Error();
+        const d = await r.json();
+        const results = d.tick_results || d;
+
+        // Reveal one-by-one instead of all at once
+        await revealBatch(results, 900);
+
+        await loadStats();
+        document.getElementById('sdot').className = 'dot';
+        document.getElementById('stxt').textContent = 'connected';
+      } catch {
+        document.getElementById('sdot').className = 'dot err';
+        document.getElementById('stxt').textContent = 'tick failed';
+      }
+
+      if (showButtonState) { btn.disabled = false; btn.textContent = '▶  Run Tick'; }
+      tickInFlight = false;
+    }
+
+    async function runTick() {
+      await runTickOnce({ showButtonState: true });
+    }
+
+    // ── Auto-play ───────────────────────────────────────────────────
+    // Drives ticks from the FRONTEND on an interval, reusing the same
+    // staggered-reveal path as a manual click. This avoids depending on
+    // a backend /scheduler/start endpoint (which 404'd) and avoids the
+    // WebSocket batch-dump path entirely.
+    let autoPlayActive = false;
+    let autoPlayTimer = null;
+    const AUTOPLAY_INTERVAL_MS = 4000;
+
+    function createAutoPlayButton() {
+      if (document.getElementById('autoplay-btn')) return;
+      const btn = document.createElement('button');
+      btn.id = 'autoplay-btn';
+      btn.textContent = '⏸ Auto-play (OFF)';
+      btn.onclick = toggleAutoPlay;
+      document.body.appendChild(btn);
+    }
+
+    function toggleAutoPlay() {
+      const btn = document.getElementById('autoplay-btn');
+      if (!btn) return;
+
+      if (autoPlayActive) {
+        autoPlayActive = false;
+        clearInterval(autoPlayTimer);
+        autoPlayTimer = null;
+        btn.classList.remove('on');
+        btn.textContent = '⏸ Auto-play (OFF)';
+      } else {
+        autoPlayActive = true;
+        btn.classList.add('on');
+        btn.textContent = '▶ Auto-play (ON)';
+        runTickOnce({ showButtonState: false });
+        autoPlayTimer = setInterval(() => {
+          runTickOnce({ showButtonState: false });
+        }, AUTOPLAY_INTERVAL_MS);
+      }
+    }
+
+    checkHealth(); loadEvents(); loadStats();
+    setInterval(checkHealth, 10000);
+
+    window.addEventListener('load', () => {
+      createAutoPlayButton();
+    });
+  </script>
+</body>
+
+</html>
